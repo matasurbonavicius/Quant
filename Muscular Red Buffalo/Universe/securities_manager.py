@@ -12,7 +12,7 @@ class SecuritiesManager:
             algorithm: The algorithm instance.
 
         Note:
-            Functionality as of 2023-09-18:
+            Current Functionality:
                 * Able to process futures
                 * Able to process Equity
         """
@@ -21,20 +21,40 @@ class SecuritiesManager:
     
     # Check if we have any futures in our universe
     def check_universe(self, data: object) -> str:
+
+        """
+        check_universe checks if we have any futures chains added to this algorithm
+
+        If yes:
+            continue to the futures processes
+        If no:
+            do nothing, return the tradable_instrument that we added in Universe Model
+        """
+
         chain = data.FuturesChains
         if chain:
             return self.check_for_rotation(data)
         else:
             return self.algo.tradable_instrument.Symbol
 
-    # Futures management
     def check_for_rotation(self, data: object) -> str:
+
+        """
+        A skeleton which calls the futures management functions in a row
+        """
+
         to_symbol = self.get_current_futures_symbol(data)
         self.rotate_open_orders(data, to_symbol)
         self.rotate_holdings(to_symbol)
         return to_symbol
 
     def get_current_futures_symbol(self, data: object) -> str:
+
+        """
+        Sorts through the current future chain and selects the nearest
+            to the expiration contract
+        """
+
         for chain in data.FutureChains:
 
             contracts = list(filter(
@@ -50,10 +70,19 @@ class SecuritiesManager:
             return symbol
 
     def get_open_orders(self) -> [Order]:
-        open_orders = self.algo.Transactions.GetOpenOrders()
-        return open_orders
+
+        """
+        Function simply calls the GetOpenOrders() and then returns it
+        """
+
+        return self.algo.Transactions.GetOpenOrders()
 
     def rotate_open_orders(self, data: object, to_symbol):
+
+        """
+        Function calls the rotate_order for every order currently open
+        """
+
         open_orders = self.get_open_orders()
 
         for order in open_orders:
@@ -61,6 +90,14 @@ class SecuritiesManager:
                 self.rotate_order(data, order, to_symbol)
 
     def rotate_order(self, data, order, to_symbol):
+
+        """
+        Function rotates the open orders, such as TP or SL currently in the market
+
+        It also adjusts the price by the price difference of both the now expired
+            and the closest to expiration future
+        """
+
         current_price = order.Price
 
         self.algo.Transactions.CancelOrder(order.Id, orderTag=order.Tag)
@@ -93,6 +130,13 @@ class SecuritiesManager:
     
     def rotate_holdings(self, to_symbol) -> None:
 
+        """
+        Function rotates the current holdings for each alpha model if 
+            the alpha models are currently invested
+
+        It simply sells and then re-buys the new contract
+        """
+
         for alpha_model in self.algo.alpha_models:
             quantity = alpha_model.quantity
             symbol = alpha_model.symbol
@@ -115,6 +159,12 @@ class SecuritiesManager:
         return
 
     def round_to_minimum_tick_size(self, price: float) -> float:
+
+        """
+        We want to round the order price to the nearest tick size
+            (Ex: for NQ it is 0.25usd) so that the exchange accepts our order
+        """
+
         properties = self.algo.Securities[self.algo.current_symbol].SymbolProperties
         tick_size = properties.MinimumPriceVariation
         return tick_size * round(price / tick_size)

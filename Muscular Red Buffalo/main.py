@@ -12,8 +12,15 @@ class MyAlgorithm(QCAlgorithm):
     
     def Initialize(self) -> None:
         
-        # -----------------------------------------------------------------------------
-        # PARAMETERS
+        """
+        Initialize function is the first function to be called, thus is the place
+            for all the settings and parameters
+
+            This function oversees the creation of Universe Model and Alpha Models
+
+            Also, this function sets the main parameters to the Risk Model, which 
+                set the behavioral of it
+        """
         
         """ SELECT DATES AND INITIAL CASH """
         self.SetTimeZone("America/New_York")
@@ -62,7 +69,6 @@ class MyAlgorithm(QCAlgorithm):
         self.init_helpers()
         self.execution_model = ExecutionModel_(self)
 
-        # -----------------------------------------------------------------------------
     
     def OnSecuritiesChanged(self, changes: object) -> None:
 
