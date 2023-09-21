@@ -66,16 +66,42 @@ class MyAlgorithm(QCAlgorithm):
     
     def OnSecuritiesChanged(self, changes: object) -> None:
 
-        # Keeps securities list updated if we are subscribed to any futures
-        new = [x for x in changes.AddedSecurities if x.Symbol.SecurityType == SecurityType.Future]
-        old = [x for x in changes.RemovedSecurities if x.Symbol.SecurityType == SecurityType.Future]
+        """
+        Function is called every time a new security is added/deleted/expired/etc. 
+        This is the place to keep the futures management which keeps our list of 
+        currently traded futures. 
+
+        We then call Securities Manager and use this list to choose the most 
+        important future contract
+        
+        """
+
+        new = []
+        for x in changes.AddedSecurities:
+            if x.Symbol.SecurityType == SecurityType.Future:
+                new.append(x)
+
+        old = []
+        for x in changes.RemovedSecurities:
+            if x.Symbol.SecurityType == SecurityType.Future:
+                old.append(x)
+        
         if new:
             self.universe_symbols.append(sorted(new, key=lambda x: x.Expiry, reverse=True)[0])
         if old:
             self.universe_symbols.remove(old)
 
-    # Called every data point
     def OnData(self, data) -> None:
+
+        """
+        Function that is called every smallest data point
+
+        Main function that is placed here is a check of securities every
+        week. 
+        - This is needed in case we are trading futures. We want to 
+            rotate the futures, keep them the latest.
+        
+        """
 
         # Call securities manager on first data point and then every week
         if self.on_data_first_call or self.week_start:
@@ -86,20 +112,49 @@ class MyAlgorithm(QCAlgorithm):
                             algorithm: IAlgorithm, 
                             insights_collection: GeneratedInsightsCollection
                             ) -> None:
+        
+        """
+        Insights = Signals. This is internal Quant Connect language
+
+        Insights are received in OnInsightsGenerated function which I
+            then pass on to the Execution Model
+
+            Yes, OnInsightsGenerated is essentially the Execution Model
+        """
 
         self.execution_model.on_insights_generated(algorithm, insights_collection)
     
     def OnOrderEvent(self, orderEvent: object) -> None:
+
+        """
+        Status Manager is called which will then redirect orderEvent to
+            the corresponding alpha model
+        """
+
         StatusManager(self, orderEvent)
                     
     def OnWarmupFinished(self) -> None:
+
+        """
+        Function that fires off once per algorithm indicating
+            that warm up has finished and the algorithm can start trading
+        """
+
         self.warmup_finished = True
     
     # --- Helper functions ---
 
     def init_helpers(self) -> None:
         
-        # Scheduler to call Securities Manager every week
+        """
+        Every function that is a helper and does not belong on
+            a fancy palace like the Initialize function of MyAlgorithm
+            should end up here. Also:
+
+            - Schedulers
+            - Variables
+        """
+
         self.Schedule.On(
             self.DateRules.WeekStart(self.signal_instrument.Symbol), 
             self.TimeRules.AfterMarketOpen(self.signal_instrument.Symbol, 0), 
@@ -111,6 +166,14 @@ class MyAlgorithm(QCAlgorithm):
         self.week_start = False
 
     def WeekStart(self) -> bool:
+
+        """
+        A helper function created in def init_helpers
+            its use: to set a variable self.week_start
+            to be equal to True at the start of the week
+            so we can call the Securities Manager
+        """
+
         self.week_start = True
         return self.week_start
     

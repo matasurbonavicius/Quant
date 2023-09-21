@@ -1,4 +1,13 @@
 from AlgorithmImports import *
 
 
-# This is blank
+class SL_Manager():
+    
+    def __init__(self, algorithm):
+
+        """
+        Args:
+            algorithm: The main algorithm instance
+        """
+
+        self.algo = algorithm
