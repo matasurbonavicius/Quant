@@ -95,9 +95,6 @@ class MyAlgorithm(QCAlgorithm):
     def OnWarmupFinished(self) -> None:
         self.warmup_finished = True
     
-    def OnEndOfAlgorithm(self) -> dict:
-        TradesExport(self).print_all_trades()
-    
     # --- Helper functions ---
 
     def init_helpers(self) -> None:

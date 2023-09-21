@@ -53,8 +53,9 @@ class AlphaModelBase(AlphaModel):
         # Update model status variables
         self.quantity += orderEvent.FillQuantity
         self.symbol = orderEvent.Symbol
-        #self.average_price = orderEvent.AverageFillPrice
+        self.average_price = orderEvent.FillPrice
         
+        # Plot trades
         if orderEvent.Direction == OrderDirection.Sell:
             self.algo.Plot("Main Chart", 
                            "Sell", 
