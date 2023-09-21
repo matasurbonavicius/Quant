@@ -95,6 +95,12 @@ class PositionSizing():
         return
     
     def exit_positions_for_model(self, alpha_model: str) -> None:
+
+        """
+        Note:
+            Function returns the opposite value for the current alpha model
+            holdings
+        """
         
         for model in self.algo.alpha_models:
             if alpha_model in model.model_name:
