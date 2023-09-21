@@ -1,7 +1,9 @@
 from QuantConnect.Algorithm import QCAlgorithm
+from QuantConnect.Orders import Direction
 from Universe.universe_model import *
 from datetime import timedelta
 from AlgorithmImports import *
+
 
 
 class AlphaModelBase(AlphaModel):
@@ -121,13 +123,13 @@ class AlphaModelBase(AlphaModel):
             self.algo.Plot("Main Chart", "Symbol", bar.Close)
             self.algo.Plot("Main Chart", "Level", self.level)
 
-            if self.ma_window[0] < self.level:
+            if self.params["Direction"] == Direction.Up:
+                if self.ma_window[0] < self.level:
+                    self.generated_insights.append(self.insight(InsightDirection.Up))
 
-                self.generated_insights.append(self.insight(InsightDirection.Up))
-            
-            # if self.ma_window[0] > self.level:
-
-            #     self.generated_insights.append(self.insight(InsightDirection.Down))
+            elif self.params["Direction"] == Direction.Down:
+                if self.ma_window[0] > self.level:
+                    self.generated_insights.append(self.insight(InsightDirection.Down))
                     
     # -----------------------------------------------------------------------------
     

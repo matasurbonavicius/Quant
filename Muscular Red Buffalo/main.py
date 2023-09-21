@@ -1,11 +1,11 @@
-from AlgorithmImports import *
-from Universe.securities_manager import *
 from Trade_Generation.execution_model import *
-from Universe.universe_model import *
 from Status_Control.status_manager import *
-from Helpers.trades_export import *
 from Trade_Generation.alpha_model import *
+from QuantConnect.Orders import Direction
+from Universe.securities_manager import *
+from Universe.universe_model import *
 from Helpers.charting import *
+from AlgorithmImports import *
 
 
 class MyAlgorithm(QCAlgorithm):
@@ -39,11 +39,13 @@ class MyAlgorithm(QCAlgorithm):
         """
         self.alpha_models = []
         for timeframe in [30]:
-                parameters = {
-                    "Timeframe": timeframe,
-                    "MAPeriod": 20,
-                    "Time_rule": "Day"
-                    }
+                for direction in [Direction.Up, Direction.Down]:
+                    parameters = {
+                        "Timeframe": timeframe,
+                        "MAPeriod": 20,
+                        "Time_rule": "Day",
+                        "Direction": direction
+                        }
                 alpha_model = AlphaModelBase(self, parameters)
                 self.alpha_models.append(alpha_model)
                 self.AddAlpha(alpha_model)
