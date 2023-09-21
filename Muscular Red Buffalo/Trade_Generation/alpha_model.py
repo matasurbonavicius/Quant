@@ -33,6 +33,9 @@ class AlphaModelBase(AlphaModel):
         self.Schedulers()
         self.Indicators()
 
+        self.level = None
+        self.period_end = False
+
     # -----------------------------------------------------------------------------
 
     def OnSecuritiesChanged(self, algorithm: QCAlgorithm, changes: dict) -> None:
@@ -48,13 +51,17 @@ class AlphaModelBase(AlphaModel):
         # Update model status variables
         self.quantity += orderEvent.FillQuantity
         self.symbol = orderEvent.Symbol
-        self.average_price = orderEvent.Price
+        #self.average_price = orderEvent.AverageFillPrice
         
         if orderEvent.Direction == OrderDirection.Sell:
-            pass
+            self.algo.Plot("Main Chart", 
+                           "Sell", 
+                           orderEvent.FillPrice)
 
         if orderEvent.Direction == OrderDirection.Buy:
-            pass
+            self.algo.Plot("Main Chart", 
+                           "Buy", 
+                           orderEvent.FillPrice)
 
     def Schedulers(self) -> None:
         
@@ -101,19 +108,26 @@ class AlphaModelBase(AlphaModel):
     def Update(self, algorithm: QCAlgorithm, data: object) -> list:  
         insights = self.generated_insights
         self.generated_insights = []
+
+        if self.period_end == True:
+            self.period_end = False
+            insights.append(self.insight(InsightDirection.Flat))
+
         return insights
 
     def Consolidated_Update(self, sender: Any, bar: object) -> None: 
+        self.ma_window.Add(self.MA.Current.Value)
         if self.algo.warmup_finished:
-            self.algo.Log(f'{str(bar)} - time: {self.algo.Time}')  
+            self.algo.Plot("Main Chart", "Symbol", bar.Close)
+            self.algo.Plot("Main Chart", "Level", self.level)
 
-            if self.ma_window[0] < bar.Close:
+            if self.ma_window[0] < self.level:
 
                 self.generated_insights.append(self.insight(InsightDirection.Up))
             
-            if self.ma_window[0] > bar.Close:
+            # if self.ma_window[0] > self.level:
 
-                self.generated_insights.append(self.insight(InsightDirection.Up))
+            #     self.generated_insights.append(self.insight(InsightDirection.Down))
                     
     # -----------------------------------------------------------------------------
     
@@ -135,8 +149,12 @@ class AlphaModelBase(AlphaModel):
         Scheduled Event
         """
 
+        self.period_end = True
+
     def start_period(self, period) -> None: 
         
         """
         Scheduled Event
         """
+
+        self.level = self.algo.Securities[self.algo.current_symbol].Open

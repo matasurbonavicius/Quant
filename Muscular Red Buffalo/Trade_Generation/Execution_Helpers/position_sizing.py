@@ -90,3 +90,15 @@ class PositionSizing():
         """
 
         return amount
+    
+    def kelly_criterion(self) -> int:
+        return
+    
+    def exit_positions_for_model(self, alpha_model: str) -> None:
+        
+        for model in self.algo.alpha_models:
+            if alpha_model in model.model_name:
+                current_model = model
+                break
+
+        return -current_model.quantity

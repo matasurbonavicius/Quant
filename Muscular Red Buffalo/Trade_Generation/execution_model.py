@@ -19,44 +19,57 @@ class ExecutionModel_():
         insights = insights_collection.Insights 
         if insights:
             for insight in insights:
-                self.algo.Log(str(insight))
 
                 if insight.Direction == InsightDirection.Up:
                     
-                    quantity = PositionSizing(self.algo).specified_contract_amount(10)
                     risk = RiskModel_(self.algo).single_position_per_model(
                         insight.SourceModel, 
-                        quantity, 
+                        PositionSizing(self.algo).specified_contract_amount(10), 
                         InsightDirection.Up
                         )
+
+                    self.algo.Log(f"{self.algo.Time} - insight up, risk: {risk}")
                     
                     if risk > 0:
 
                         self.algo.MarketOrder(
                             symbol = self.algo.current_symbol, 
-                            quantity = quantity, 
+                            quantity = risk, 
                             tag = insight.SourceModel
                             )
 
 
                 if insight.Direction == InsightDirection.Down:
-                    quantity = PositionSizing(self.algo).specified_contract_amount(10)
+                    
                     risk = RiskModel_(self.algo).single_position_per_model(
                         insight.SourceModel, 
-                        quantity, 
-                        InsightDirection.Up
+                        PositionSizing(self.algo).specified_contract_amount(-10), 
+                        InsightDirection.Down
                         )
+
+                    self.algo.Log(f"{self.algo.Time} - insight down, risk: {risk}")
                 
                     if risk < 0:
 
                         self.algo.MarketOrder(
                             symbol = self.algo.current_symbol, 
-                            quantity = -quantity, 
+                            quantity = risk, 
                             tag = insight.SourceModel
                             )
 
                 if insight.Direction == InsightDirection.Flat:
-                    pass
+                    
+                    #quantity =  `   PositionSizing(self.algo).exit_positions_for_model(insight.SourceModel), 
+
+                    self.algo.Log(f"{self.algo.Time} - insight down, risk: {risk}")
+                
+                    if risk < 0:
+
+                        self.algo.MarketOrder(
+                            symbol = self.algo.current_symbol, 
+                            quantity = risk, 
+                            tag = insight.SourceModel
+                            )
         
     # --- Helper Functions ---
     

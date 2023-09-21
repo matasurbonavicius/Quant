@@ -23,14 +23,23 @@ class RiskModel_():
 
     def single_position_per_model(self, alpha_model: str, trade_quantity: int, direction: InsightDirection) -> int:
 
-        for model in self.algo.alpha_models():
+        for model in self.algo.alpha_models:
             if alpha_model in model.model_name:
                 current_model = model
                 break
+        
+        if trade_quantity is None or trade_quantity == 0:
+            self.algo.Debug("Trade Quantity in risk model is invalid")
+
+        self.algo.Log(f"{self.algo.Time} - Risk Model, model quantity: {current_model.quantity}")
 
         if direction == InsightDirection.Up:
             if current_model.quantity <= 0:
                 return trade_quantity
+            else:
+                return 0
         elif direction == InsightDirection.Down:
             if current_model.quantity >= 0:
                 return trade_quantity 
+            else:
+                return 0
