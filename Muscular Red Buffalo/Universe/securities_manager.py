@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
-from AlgorithmImports import *
 from QuantConnect.Algorithm import QCAlgorithm
-from typing import List
+from datetime import timedelta
+from AlgorithmImports import *
 
 
 class SecuritiesManager:

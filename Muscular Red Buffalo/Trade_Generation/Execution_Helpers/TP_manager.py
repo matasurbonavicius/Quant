@@ -1,6 +1,3 @@
-#region imports
 from AlgorithmImports import *
-#endregion
 
-
-# Your New Python File
+# This is blank
