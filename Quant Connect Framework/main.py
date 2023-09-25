@@ -1,3 +1,5 @@
+from Trade_Generation.Execution_Helpers.TP_manager import TakeProfitManager
+from Trade_Generation.Execution_Helpers.SL_manager import StopLossManager
 from Trade_Generation.execution_model import *
 from Status_Control.status_manager import *
 from Trade_Generation.alpha_model import *
@@ -21,6 +23,10 @@ class MyAlgorithm(QCAlgorithm):
             Also, this function sets the main parameters to the Risk Model, which 
                 set the behavioral of it
         """
+
+        """ Initialize Managers"""
+        self.tp_manager = TakeProfitManager(self)
+        self.sl_manager = StopLossManager(self)
         
         """ SELECT DATES AND INITIAL CASH """
         self.SetTimeZone("America/New_York")

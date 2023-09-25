@@ -1,9 +1,7 @@
 from QuantConnect.Algorithm import QCAlgorithm
-from QuantConnect.Orders import Direction
-from Universe.universe_model import *
+from Trade_Generation.Execution_Helpers.TP_manager import PercentageTPStrategy
 from datetime import timedelta
 from AlgorithmImports import *
-
 
 
 class AlphaModelBase(AlphaModel):
@@ -38,6 +36,10 @@ class AlphaModelBase(AlphaModel):
         self.level = None
         self.period_end = False
 
+        tp_strategy = PercentageTPStrategy(self.algo, 0.05)
+        self.algo.tp_manager.register_tp_strategy(self.model_name, tp_strategy)
+
+
     # -----------------------------------------------------------------------------
 
     def OnSecuritiesChanged(self, algorithm: QCAlgorithm, changes: dict) -> None:
@@ -53,9 +55,8 @@ class AlphaModelBase(AlphaModel):
         # Update model status variables
         self.quantity += orderEvent.FillQuantity
         self.symbol = orderEvent.Symbol
-        self.average_price = orderEvent.FillPrice
+        #self.average_price = orderEvent.AverageFillPrice
         
-        # Plot trades
         if orderEvent.Direction == OrderDirection.Sell:
             self.algo.Plot("Main Chart", 
                            "Sell", 
@@ -67,18 +68,32 @@ class AlphaModelBase(AlphaModel):
                            orderEvent.FillPrice)
 
     def Schedulers(self) -> None:
+
+        symbol = self.algo.signal_instrument.Symbol
+
+        date_rule_end = {
+            "Month": self.algo.DateRules.MonthEnd(symbol),
+            "Week": self.algo.DateRules.WeekEnd(symbol),
+            "Day": self.algo.DateRules.EveryDay(symbol)
+            }
+
+        date_rule_start = {
+            "Month": self.algo.DateRules.MonthStart(symbol),
+            "Week": self.algo.DateRules.WeekStart(symbol),
+            "Day": self.algo.DateRules.EveryDay(symbol)
+            }
         
         self.algo.Schedule.On(
-            self.algo.DateRules.MonthEnd(self.algo.signal_instrument.Symbol), 
-            self.algo.TimeRules.BeforeMarketClose(self.algo.signal_instrument.Symbol, 0), 
+            date_rule_end[self.params["Time_rule"]], 
+            self.algo.TimeRules.BeforeMarketClose(symbol, 2), 
             Action(lambda: self.end_period(self.params["Time_rule"]))
             )
-        
+    
         self.algo.Schedule.On(
-            self.algo.DateRules.MonthStart(self.algo.signal_instrument.Symbol), 
-            self.algo.TimeRules.AfterMarketOpen(self.algo.signal_instrument.Symbol, 1), 
+            date_rule_start[self.params["Time_rule"]], 
+            self.algo.TimeRules.AfterMarketOpen(symbol, 0), 
             Action(lambda: self.start_period(self.params["Time_rule"]))
-            )      
+            )    
 
     def Indicators(self) -> None:
 
@@ -124,20 +139,17 @@ class AlphaModelBase(AlphaModel):
             self.algo.Plot("Main Chart", "Symbol", bar.Close)
             self.algo.Plot("Main Chart", "Level", self.level)
 
-            if self.params["Direction"] == Direction.Up:
-                if self.ma_window[0] < self.level:
-                    self.generated_insights.append(self.insight(InsightDirection.Up))
+            if bar.Close > self.level:
 
-            elif self.params["Direction"] == Direction.Down:
-                if self.ma_window[0] > self.level:
-                    self.generated_insights.append(self.insight(InsightDirection.Down))
+                self.generated_insights.append(
+                    self.insight(InsightDirection.Up))
                     
     # -----------------------------------------------------------------------------
     
     def insight(self, direction: int) -> object:
         
         insight = Insight(
-            self.algo.current_symbol, 
+            self.algo.signal_instrument.Symbol, 
             timedelta(minutes=1), 
             InsightType.Price, 
             direction
@@ -160,4 +172,6 @@ class AlphaModelBase(AlphaModel):
         Scheduled Event
         """
 
-        self.level = self.algo.Securities[self.algo.current_symbol].Open
+        self.level = self.algo.Securities[
+            self.algo.signal_instrument.Symbol
+            ].Open

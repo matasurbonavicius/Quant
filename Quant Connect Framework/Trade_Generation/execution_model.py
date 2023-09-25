@@ -1,6 +1,6 @@
-from Trade_Generation.Execution_Helpers.position_sizing import *
-from Trade_Generation.risk_model import *
 from AlgorithmImports import *
+from risk_model import *
+from Trade_Generation.Execution_Helpers.position_sizing import *
 import datetime
 import pytz
 
@@ -15,10 +15,21 @@ class ExecutionModel_():
 
         self.algo = algorithm
 
-    def on_insights_generated(self, algorithm: IAlgorithm, insights_collection: GeneratedInsightsCollection) -> None:
+    def on_insights_generated(self, 
+                              algorithm: IAlgorithm, 
+                              insights_collection: GeneratedInsightsCollection
+                              ) -> None:
+        
         insights = insights_collection.Insights 
+
         if insights:
             for insight in insights:
+
+                if hasattr(insight, 'TP'):
+                    self.algo.Log(insight.TP)
+                else:
+                    self.algo.Log("This insight does not have a TP attribute")
+
 
                 if insight.Direction == InsightDirection.Up:
                     
@@ -59,11 +70,15 @@ class ExecutionModel_():
 
                 if insight.Direction == InsightDirection.Flat:
                     
-                    #quantity =  `   PositionSizing(self.algo).exit_positions_for_model(insight.SourceModel), 
+                    risk = RiskModel_(self.algo).single_position_per_model(
+                        insight.SourceModel, 
+                        PositionSizing(self.algo).exit_positions_for_model(insight.SourceModel), 
+                        InsightDirection.Down
+                        )
 
-                    self.algo.Log(f"{self.algo.Time} - insight down, risk: {risk}")
+                    self.algo.Log(f"{self.algo.Time} - insight flat, risk: {risk}")
                 
-                    if risk < 0:
+                    if risk != 0:
 
                         self.algo.MarketOrder(
                             symbol = self.algo.current_symbol, 
