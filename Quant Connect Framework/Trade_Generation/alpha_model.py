@@ -60,26 +60,19 @@ class AlphaModelBase(AlphaModel):
             self.average_price = orderEvent.FillPrice
         
         if orderEvent.Direction == OrderDirection.Sell:
-            self.algo.Log(f'Sell order came')
             self.algo.Plot("Main Chart", 
                            "Sell", 
                            orderEvent.FillPrice)
 
         if orderEvent.Direction == OrderDirection.Buy:
-            self.algo.Log(f'buy order came')
             self.algo.Plot("Main Chart", 
                            "Buy", 
                            orderEvent.FillPrice)
         
-        self.algo.Log(f'Order came, current a. model qty: {self.quantity}')
-        
         # Loop through all open orders and cancel ones, corresponding to this alpha model
         if self.quantity == 0:
-            self.algo.Log("About to cancel order")
             for order in self.algo.Transactions.GetOpenOrders():
-                self.algo.Log(f"almost cancelling: {order}")
-                if self.model_name in:
-
+                if self.model_name in order.Tag:
                     self.algo.Transactions.CancelOrder(order.Id)
 
     def Schedulers(self) -> None:
