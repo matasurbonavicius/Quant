@@ -9,14 +9,6 @@ class RiskModel_():
         Args:
             algorithm: The main algorithm instance
 
-        Note:
-
-            input: modelis ir siulomas naujas treidas
-            output: max kiekis kiek leidziama pirkti (gali buti nulis)
-
-            jei position sizing sako perkam 5 lotus, o rizikos modelis sako
-            max yra 3, tai imam 3
-
         """
 
         self.algo = algorithm
@@ -30,8 +22,7 @@ class RiskModel_():
         
         if trade_quantity is None or trade_quantity == 0:
             self.algo.Debug("Trade Quantity in risk model is invalid")
-
-        self.algo.Log(f"{self.algo.Time} - Risk Model, model quantity: {current_model.quantity}")
+            return 0
 
         if direction == InsightDirection.Up:
             if current_model.quantity <= 0:
@@ -43,3 +34,15 @@ class RiskModel_():
                 return trade_quantity 
             else:
                 return 0
+
+    def exit_positions_for_model(self, alpha_model: str) -> None:
+        
+        for model in self.algo.alpha_models:
+            if alpha_model in model.model_name:
+                current_model = model
+                break
+        
+        if current_model.quantity == 0:
+            return 0
+
+        return -current_model.quantity

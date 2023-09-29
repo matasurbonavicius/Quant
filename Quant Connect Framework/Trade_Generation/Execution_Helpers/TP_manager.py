@@ -33,7 +33,7 @@ class AbstractTPStrategy:
             symbol=self.algo.signal_instrument.Symbol,
             quantity=-current_model.quantity,
             limitPrice=tp_price,
-            tag=f"{current_model} - Take Profit"
+            tag=f"{alpha_model} - Take Profit"
         )
 
 

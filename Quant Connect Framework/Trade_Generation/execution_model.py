@@ -1,8 +1,10 @@
 from AlgorithmImports import *
 from risk_model import *
-from Trade_Generation.Execution_Helpers.position_sizing import *
+from Trade_Generation.Execution_Helpers.position_sizing import PositionSizing
 import datetime
 import pytz
+from Trade_Generation.Execution_Helpers.TP_manager import TakeProfitManager
+from Helpers.enums import Direction
 
 class ExecutionModel_():
     
@@ -21,47 +23,39 @@ class ExecutionModel_():
                               ) -> None:
         
         insights = insights_collection.Insights 
+        current_price = self.algo.Securities[self.algo.current_symbol].Close
 
         if insights:
             for insight in insights:
 
-                if hasattr(insight, 'TP'):
-                    self.algo.Log(insight.TP)
-                else:
-                    self.algo.Log("This insight does not have a TP attribute")
-
-
                 if insight.Direction == InsightDirection.Up:
-                    
                     risk = RiskModel_(self.algo).single_position_per_model(
-                        insight.SourceModel, 
-                        PositionSizing(self.algo).specified_contract_amount(10), 
-                        InsightDirection.Up
-                        )
-
-                    self.algo.Log(f"{self.algo.Time} - insight up, risk: {risk}")
+                            insight.SourceModel, 
+                            PositionSizing(self.algo).specified_contract_amount(10), 
+                            InsightDirection.Up
+                            )
                     
                     if risk > 0:
-
                         self.algo.MarketOrder(
                             symbol = self.algo.current_symbol, 
                             quantity = risk, 
                             tag = insight.SourceModel
                             )
+                        
+                        self.algo.tp_manager.use_tp(
+                            alpha_model = insight.SourceModel, 
+                            price = current_price, 
+                            direction = Direction.Long)
 
 
                 if insight.Direction == InsightDirection.Down:
-                    
                     risk = RiskModel_(self.algo).single_position_per_model(
-                        insight.SourceModel, 
-                        PositionSizing(self.algo).specified_contract_amount(-10), 
-                        InsightDirection.Down
-                        )
+                            insight.SourceModel, 
+                            PositionSizing(self.algo).specified_contract_amount(-10), 
+                            InsightDirection.Down
+                            )
 
-                    self.algo.Log(f"{self.algo.Time} - insight down, risk: {risk}")
-                
                     if risk < 0:
-
                         self.algo.MarketOrder(
                             symbol = self.algo.current_symbol, 
                             quantity = risk, 
@@ -69,17 +63,11 @@ class ExecutionModel_():
                             )
 
                 if insight.Direction == InsightDirection.Flat:
-                    
-                    risk = RiskModel_(self.algo).single_position_per_model(
-                        insight.SourceModel, 
-                        PositionSizing(self.algo).exit_positions_for_model(insight.SourceModel), 
-                        InsightDirection.Down
-                        )
-
-                    self.algo.Log(f"{self.algo.Time} - insight flat, risk: {risk}")
+                    risk = RiskModel_(self.algo).exit_positions_for_model(
+                            insight.SourceModel
+                            )
                 
                     if risk != 0:
-
                         self.algo.MarketOrder(
                             symbol = self.algo.current_symbol, 
                             quantity = risk, 

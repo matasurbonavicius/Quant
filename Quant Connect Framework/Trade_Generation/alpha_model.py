@@ -36,7 +36,7 @@ class AlphaModelBase(AlphaModel):
         self.level = None
         self.period_end = False
 
-        tp_strategy = PercentageTPStrategy(self.algo, 0.05)
+        tp_strategy = PercentageTPStrategy(self.algo, 0.03)
         self.algo.tp_manager.register_tp_strategy(self.model_name, tp_strategy)
 
 
@@ -55,17 +55,32 @@ class AlphaModelBase(AlphaModel):
         # Update model status variables
         self.quantity += orderEvent.FillQuantity
         self.symbol = orderEvent.Symbol
-        #self.average_price = orderEvent.AverageFillPrice
+
+        if orderEvent.Status == OrderStatus.Filled:
+            self.average_price = orderEvent.FillPrice
         
         if orderEvent.Direction == OrderDirection.Sell:
+            self.algo.Log(f'Sell order came')
             self.algo.Plot("Main Chart", 
                            "Sell", 
                            orderEvent.FillPrice)
 
         if orderEvent.Direction == OrderDirection.Buy:
+            self.algo.Log(f'buy order came')
             self.algo.Plot("Main Chart", 
                            "Buy", 
                            orderEvent.FillPrice)
+        
+        self.algo.Log(f'Order came, current a. model qty: {self.quantity}')
+        
+        # Loop through all open orders and cancel ones, corresponding to this alpha model
+        if self.quantity == 0:
+            self.algo.Log("About to cancel order")
+            for order in self.algo.Transactions.GetOpenOrders():
+                self.algo.Log(f"almost cancelling: {order}")
+                if self.model_name in:
+
+                    self.algo.Transactions.CancelOrder(order.Id)
 
     def Schedulers(self) -> None:
 
@@ -120,6 +135,7 @@ class AlphaModelBase(AlphaModel):
             )
 
         self.ma_window = RollingWindow[float](2)
+        self.prices_window = RollingWindow[float](2)
 
     # -----------------------------------------------------------------------------
 
@@ -130,16 +146,19 @@ class AlphaModelBase(AlphaModel):
         if self.period_end == True:
             self.period_end = False
             insights.append(self.insight(InsightDirection.Flat))
+            self.algo.Log(f"Euodam flat signala")
 
         return insights
 
     def Consolidated_Update(self, sender: Any, bar: object) -> None: 
         self.ma_window.Add(self.MA.Current.Value)
+        self.prices_window.Add(bar.Close)
         if self.algo.warmup_finished:
             self.algo.Plot("Main Chart", "Symbol", bar.Close)
             self.algo.Plot("Main Chart", "Level", self.level)
 
-            if bar.Close > self.level:
+            if self.prices_window[0] > self.level and self.prices_window[1] < self.level:
+                self.algo.Log(f"Euodam long signala")
 
                 self.generated_insights.append(
                     self.insight(InsightDirection.Up))
@@ -175,3 +194,4 @@ class AlphaModelBase(AlphaModel):
         self.level = self.algo.Securities[
             self.algo.signal_instrument.Symbol
             ].Open
+    
