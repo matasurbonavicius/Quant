@@ -51,13 +51,12 @@ class MyAlgorithm(QCAlgorithm):
             - AddAlpha function adds model to the algorithm
         """
         self.alpha_models = []
-        for timeframe in [30]:
-                for direction in [Direction.Up, Direction.Down]:
+        for timeframe in [15, 30]:
+                for timerule in ['Month', 'Week', 'Day']:
                     parameters = {
                         "Timeframe": timeframe,
                         "MAPeriod": 20,
-                        "Time_rule": "Day",
-                        "Direction": direction
+                        "Time_rule": timerule
                         }
                 alpha_model = AlphaModelBase(self, parameters)
                 self.alpha_models.append(alpha_model)

@@ -1,4 +1,5 @@
 from AlgorithmImports import *
+from Helpers.enums import Direction
 
 
 class PositionSizing():
@@ -17,7 +18,31 @@ class PositionSizing():
 
         self.algo = algorithm
 
-    def equal_qty_per_model(self) -> int:
+    def margin_check(func):
+        """Decorator to ensure position size doesn't exceed available margin."""
+        
+        def wrapper(self, *args, **kwargs):
+            
+            # 1. Call the original function
+            position_size = func(self, *args, **kwargs)
+            
+            # 2. Retrieve price, multiplier and margin
+            symbol = self.algo.current_symbol
+            price = self.algo.Securities[symbol].Close
+            multiplier = self.algo.Securities[symbol].SymbolProperties.ContractMultiplier
+            max_trade_value = self.algo.Portfolio.MarginRemaining
+
+            # 3. Check and adjust position size based on available margin
+            if abs(position_size * price * multiplier) > max_trade_value:
+                adjusted_position_size = int(max_trade_value / (price * multiplier))
+                return adjusted_position_size if position_size > 0 else -adjusted_position_size
+            
+            return position_size
+            
+        return wrapper
+
+    @margin_check
+    def equal_qty_per_model(self, direction: Direction) -> int:
 
         """
         Note:
@@ -32,8 +57,13 @@ class PositionSizing():
         alpha_models_count = len(self.algo.alpha_models)
         exposure_per_model = 1 / alpha_models_count
         notional_amount = exposure_per_model * self.algo.Portfolio.TotalPortfolioValue
-        return int((notional_amount) / (price * multiplier))
+        self.algo.Log(f"{self.algo.Time} - remaining margin:  {self.algo.Portfolio.MarginRemaining}")
+        if direction == Direction.Long:
+            return int((notional_amount) / (price * multiplier))
+        else:
+            return -int((notional_amount) / (price * multiplier))
     
+    @margin_check
     def full_portfolio_per_model(self) -> int:
 
         """
@@ -52,6 +82,7 @@ class PositionSizing():
         notional_amount = exposure_per_model * self.algo.Portfolio.TotalPortfolioValue
         return int((notional_amount) / (price * multiplier))
     
+    @margin_check
     def percentage_from_portfolio(self, percentage: str("5%: 0.05")) -> int:
 
         """
@@ -68,6 +99,7 @@ class PositionSizing():
         notional_amount = self.algo.Portfolio.TotalPortfolioValue * percentage
         return int(notional_amount / (price * multiplier))
     
+    @margin_check
     def percentage_from_given_value(self, percentage: str("5%: 0.05"), value: float) -> int:
 
         """
@@ -82,6 +114,7 @@ class PositionSizing():
         notional_amount = value * percentage
         return int(notional_amount / (price * multiplier))
     
+    @margin_check
     def specified_contract_amount(self, amount) -> int:
 
         """
@@ -91,5 +124,6 @@ class PositionSizing():
 
         return amount
     
+    @margin_check
     def kelly_criterion(self) -> int:
         return

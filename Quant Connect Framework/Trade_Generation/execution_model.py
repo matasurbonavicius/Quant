@@ -28,12 +28,16 @@ class ExecutionModel_():
         if insights:
             for insight in insights:
 
+                self.algo.Log(f"{self.algo.Time} - insight: {insight}")
+
                 if insight.Direction == InsightDirection.Up:
                     risk = RiskModel_(self.algo).single_position_per_model(
                             insight.SourceModel, 
-                            PositionSizing(self.algo).specified_contract_amount(10), 
+                            PositionSizing(self.algo).equal_qty_per_model(Direction.Long), 
                             InsightDirection.Up
                             )
+                    
+                    self.algo.Log(f"{self.algo.Time} - Direction long; pos sizing: {PositionSizing(self.algo).equal_qty_per_model(Direction.Long)}")
                     
                     if risk > 0:
                         self.algo.MarketOrder(
@@ -46,12 +50,17 @@ class ExecutionModel_():
                             alpha_model = insight.SourceModel, 
                             price = current_price, 
                             direction = Direction.Long)
-
+                        
+                        self.algo.sl_manager.use_sl(
+                            alpha_model = insight.SourceModel, 
+                            price = current_price, 
+                            direction = Direction.Long
+                            )
 
                 if insight.Direction == InsightDirection.Down:
                     risk = RiskModel_(self.algo).single_position_per_model(
                             insight.SourceModel, 
-                            PositionSizing(self.algo).specified_contract_amount(-10), 
+                            PositionSizing(self.algo).equal_qty_per_model(Direction.Short), 
                             InsightDirection.Down
                             )
 
@@ -61,6 +70,17 @@ class ExecutionModel_():
                             quantity = risk, 
                             tag = insight.SourceModel
                             )
+                    
+                        self.algo.tp_manager.use_tp(
+                                alpha_model = insight.SourceModel, 
+                                price = current_price, 
+                                direction = Direction.Short)
+                        
+                        self.algo.sl_manager.use_sl(
+                                alpha_model = insight.SourceModel, 
+                                price = current_price, 
+                                direction = Direction.Short
+                                )
 
                 if insight.Direction == InsightDirection.Flat:
                     risk = RiskModel_(self.algo).exit_positions_for_model(
@@ -73,18 +93,3 @@ class ExecutionModel_():
                             quantity = risk, 
                             tag = insight.SourceModel
                             )
-        
-    # --- Helper Functions ---
-    
-    def round_to_minimum_tick_size(self, price: float) -> float:
-        properties = self.algo.Securities[self.algo.current_symbol].SymbolProperties
-        tick_size = properties.MinimumPriceVariation
-        return tick_size * round(price / tick_size)
-
-    def get_LTU_timezone(self) -> str:
-        algorithm_datetime = datetime.combine(self.algo.Time.date(), self.algo.Time.time())
-        algorithm_timezone = pytz.timezone(str(self.algo.TimeZone))
-        localized_algorithm_datetime = algorithm_timezone.localize(algorithm_datetime)
-        lithuania_timezone = pytz.timezone('Europe/Lithuania')
-        lithuania_datetime = localized_algorithm_datetime.astimezone(lithuania_timezone)
-        return lithuania_datetime.strftime('%Y-%m-%d %H:%M')

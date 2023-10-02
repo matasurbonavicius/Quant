@@ -24,7 +24,7 @@ class AbstractSLStrategy:
             symbol=self.algo.signal_instrument.Symbol,
             quantity=-current_model.quantity,
             stopPrice=sl_price,
-            tag=f"{current_model} - Stop Loss"
+            tag=f"{alpha_model} - Stop Loss"
         )
 
 
@@ -53,6 +53,33 @@ class StopLossManager:
         strategy = self.alpha_models_sl.get(alpha_model)
         if strategy:
             strategy.apply(alpha_model, price, direction)
+
+
+class CandleHighLowSLStrategy(AbstractSLStrategy):
+
+    def __init__(self, algo, candle_high: float = None, candle_low: float = None) -> None:
+        super().__init__(algo)
+        self.candle_low = candle_low
+        self.candle_high = candle_high
+
+    def apply(self, alpha_model: str, price: float, direction: Direction):
+        if direction == Direction.Long:
+            self.place_order(alpha_model, self.candle_low)
+        else:
+            self.place_order(alpha_model, self.candle_high)
+
+
+class NoSLStrategy(AbstractSLStrategy):
+
+    """
+    No SL Strategy in use
+    """
+
+    def __init__(self, algo) -> None:
+        super().__init__(algo)
+    
+    def apply(self, alpha_model: str, price: float, direction: Direction):
+        pass
 
 
 class PercentageSLStrategy(AbstractSLStrategy):

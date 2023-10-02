@@ -74,6 +74,19 @@ class TakeProfitManager:
             strategy.apply(alpha_model, price, direction)
 
 
+class NoTPStrategy(AbstractTPStrategy):
+
+    """
+    No TP Strategy in use
+    """
+
+    def __init__(self, algo) -> None:
+        super().__init__(algo)
+    
+    def apply(self, alpha_model: str, price: float, direction: Direction):
+        pass
+
+
 class PercentageTPStrategy(AbstractTPStrategy):
 
     """

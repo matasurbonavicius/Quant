@@ -1,5 +1,6 @@
 from QuantConnect.Algorithm import QCAlgorithm
 from Trade_Generation.Execution_Helpers.TP_manager import PercentageTPStrategy
+from Trade_Generation.Execution_Helpers.SL_manager import PercentageSLStrategy
 from datetime import timedelta
 from AlgorithmImports import *
 
@@ -35,9 +36,12 @@ class AlphaModelBase(AlphaModel):
 
         self.level = None
         self.period_end = False
+        self.start_period_ = False
 
         tp_strategy = PercentageTPStrategy(self.algo, 0.03)
+        sl_strategy = PercentageSLStrategy(self.algo, 0.005)
         self.algo.tp_manager.register_tp_strategy(self.model_name, tp_strategy)
+        self.algo.sl_manager.register_sl_strategy(self.model_name, sl_strategy)
 
 
     # -----------------------------------------------------------------------------
@@ -60,11 +64,13 @@ class AlphaModelBase(AlphaModel):
             self.average_price = orderEvent.FillPrice
         
         if orderEvent.Direction == OrderDirection.Sell:
+            self.algo.Log(f'Sell order came')
             self.algo.Plot("Main Chart", 
                            "Sell", 
                            orderEvent.FillPrice)
 
         if orderEvent.Direction == OrderDirection.Buy:
+            self.algo.Log(f'buy order came')
             self.algo.Plot("Main Chart", 
                            "Buy", 
                            orderEvent.FillPrice)
@@ -129,6 +135,7 @@ class AlphaModelBase(AlphaModel):
 
         self.ma_window = RollingWindow[float](2)
         self.prices_window = RollingWindow[float](2)
+        self.level_window = RollingWindow[float](2)
 
     # -----------------------------------------------------------------------------
 
@@ -139,7 +146,6 @@ class AlphaModelBase(AlphaModel):
         if self.period_end == True:
             self.period_end = False
             insights.append(self.insight(InsightDirection.Flat))
-            self.algo.Log(f"Euodam flat signala")
 
         return insights
 
@@ -147,12 +153,11 @@ class AlphaModelBase(AlphaModel):
         self.ma_window.Add(self.MA.Current.Value)
         self.prices_window.Add(bar.Close)
         if self.algo.warmup_finished:
+            self.level_window.Add(self.level)
             self.algo.Plot("Main Chart", "Symbol", bar.Close)
             self.algo.Plot("Main Chart", "Level", self.level)
 
-            if self.prices_window[0] > self.level and self.prices_window[1] < self.level:
-                self.algo.Log(f"Euodam long signala")
-
+            if (self.prices_window[0] > self.level_window[0] and self.prices_window[1] < self.level_window[0]):
                 self.generated_insights.append(
                     self.insight(InsightDirection.Up))
                     
@@ -187,4 +192,5 @@ class AlphaModelBase(AlphaModel):
         self.level = self.algo.Securities[
             self.algo.signal_instrument.Symbol
             ].Open
-    
+        
+        self.start_period_ = True
