@@ -144,6 +144,7 @@ def MainCode():
     daily_returns = np.diff(spy_close) / spy_close[:-1]
     spy_ma_100    = np.mean(spy_close[-100:])
 
+    # Note: some variables are rather arbitrary
     NoOfPaths     = 1000                  # Number of paths
     NoOfSteps     = 32                    # Number of steps 
     S_0           = spy_close[-1]         # Initial price
