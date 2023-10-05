@@ -144,22 +144,21 @@ def MainCode():
     daily_returns = np.diff(spy_close) / spy_close[:-1]
     spy_ma_100    = np.mean(spy_close[-100:])
 
-    # Note: some variables are rather arbitrary
     NoOfPaths     = 1000                  # Number of paths
     NoOfSteps     = 32                    # Number of steps 
     S_0           = spy_close[-1]         # Initial price
     r             = 0.001                 # Risk free rate
-    mu            = 0.002                 # Expected return
+    mu            = 0                     # Expected return
     sigma         = np.std(daily_returns) # Volatility
     T             = 5                     # Time period of 5 days
-    sims          = 4                     # Simulations qty
+    sims          = 3                     # Simulations qty
     theta         = 0.5                   # How quickly reverts to the mean (1 = daily)
     JumpIntensity = 0.03                  # Jump intensity per T
     JumpAmplitude = 0.1                   # Jump amplitude
     mean          = spy_ma_100            # Mean
 
 
-    np.random.seed(50)
+    np.random.seed(595955)
     Z_single = np.random.normal(0.0,1.0,[NoOfPaths,NoOfSteps])
     Z = np.tile(Z_single, (sims,1,1))
     
@@ -167,14 +166,12 @@ def MainCode():
     pathsr = GeneratePathsGBM(NoOfPaths,NoOfSteps,T,r,sigma,S_0, Z[0, :, :])
     time= pathsr["time"] 
     pathsr = pathsr["S"]
-    pathsmu = GeneratePathsGBM(NoOfPaths,NoOfSteps,T,mu,sigma,S_0, Z[1, :, :])["S"]
-    pathsou = GeneratePathsOU(NoOfPaths, NoOfSteps, T, sigma*1000, theta, S_0, Z[2, :, :], mean)["S"]
-    pathsjdp = GenerateJDP(NoOfPaths, NoOfSteps, S_0, T, mu, sigma, JumpIntensity, JumpAmplitude, Z[3,:,:])
+    pathsou = GeneratePathsOU(NoOfPaths, NoOfSteps, T, sigma*1000, theta, S_0, Z[1, :, :], mean)["S"]
+    pathsjdp = GenerateJDP(NoOfPaths, NoOfSteps, S_0, T, mu, sigma, JumpIntensity, JumpAmplitude, Z[2,:,:])
 
     # Plotting single lines to visualize differences
     fix1 = plt.figure(1)
-    plt.plot(time, np.transpose(pathsr[:1, :]),'green', label="AMB")
-    plt.plot(time, np.transpose(pathsmu[:1, :]),'black', label="GBM")
+    plt.plot(time, np.transpose(pathsr[:1, :]),'green', label="BM")
     plt.plot(time, np.transpose(pathsou[:1, :]),'red', label="OU")
     plt.plot(time, np.transpose(pathsjdp[:1, :]),'orange', label="JDP")
     plt.axhline(S_0, color='blue', linestyle='dashed', linewidth=1)
@@ -185,8 +182,6 @@ def MainCode():
     fig2 = plt.figure(2)
     plt.hist(pathsr[:, -1], bins=50, alpha=0.5, label="GBM r", color="orange")
     plt.axvline(np.mean(pathsr), color='orange', linestyle='dashed', linewidth=1)
-    plt.hist(pathsmu[:, -1], bins=50, alpha=0.5, label="GBM mu", color="green")
-    plt.axvline(np.mean(pathsmu), color='green', linestyle='dashed', linewidth=1)
     plt.hist(pathsou[:, -1], bins=50, alpha=0.5, label="OU", color="black")
     plt.axvline(np.mean(pathsou), color='black', linestyle='dashed', linewidth=1)
     plt.hist(pathsjdp[:, -1], bins=50, alpha=0.5, label="JDP", color="grey")
@@ -205,11 +200,12 @@ def MainCode():
         # Path chart
         ax0 = plt.subplot(gs[0])
         ax0.plot(spy_close, color="blue", label=method_name)
-        ax0.set_title(f"{method_name} Prices with Forecast")
+        ax0.set_title(f"{method_name} Histogram on SPY")
         ax0.set_ylabel("Price")
         ax0.set_xlabel("Time")
-        ax0.scatter(len(spy_close)+4, spy_current, marker="X")
+        ax0.scatter(len(spy_close)+4, spy_current, marker="X", label="Current Price", color="red")
         ax0.margins(x=0)
+        ax0.grid(axis='y', linestyle='--', color='gray', linewidth=0.5)
 
         # Histogram
         ax1 = plt.subplot(gs[1])
@@ -218,20 +214,15 @@ def MainCode():
         ax1.barh(bin_centers, hist, height=(bins[1]-bins[0]), color="blue", align='center')
         ax1.axhline(np.mean(prices[:, -1]), color='black', linestyle='--', label="Mean")
         ax1.set_ylim(ax0.get_ylim())  # Setting y limits of histogram to match ax0
-        ax1.axhline(np.mean(prices[:, -1]) + 2*np.std(prices), color='green', linestyle='--', label="Mean")
-        ax1.axhline(np.mean(prices[:, -1]) - 2*np.std(prices), color='red', linestyle='--', label="Mean")
+        ax1.axhline(np.mean(prices[:, -1]) + 2*np.std(prices), color='green', linestyle='--', label="98% Confidence interval")
+        ax1.axhline(np.mean(prices[:, -1]) - 2*np.std(prices), color='green', linestyle='--')
         ax1.yaxis.set_visible(False)
-        ax1.axis('off')
 
         plt.subplots_adjust(wspace=0)
         plt.legend()
 
-
     # # Plot for AMB
     plot_individual_figure("ABM", pathsr)
-
-    # Plot for GBM
-    plot_individual_figure("GBM", pathsmu)
 
     # # Plot for OU
     plot_individual_figure("OU", pathsou)
