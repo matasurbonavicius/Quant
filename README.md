@@ -6,8 +6,14 @@ I upload my research and code in this repository.
 
 Navigation:
 
-- Quant Connect Framework: A powerful python code framework for Quant Connect platform
-- Quant Research: scripts to discover new things about market, potential ideas
+- Cpp
+  * Options scripts
+- Python
+  * Quant Research
+     + Jupyter Notebook Scripts
+     + Python code
+  * Quant Trading
+     + Quant Connect Platform Code
 
 Description:
 - https://www.MercatusCapitis.com
