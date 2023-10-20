@@ -46,8 +46,8 @@ class Triple_Barrier_Labeling:
         
         logging.info("Labeling the data using the Triple Barrier method.")
         
-        upper_barrier = self.y * 1.01
-        lower_barrier = self.y * 0.99
+        upper_barrier = self.y * 1.02
+        lower_barrier = self.y * 0.98
 
         labels = []
 

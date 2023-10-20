@@ -25,7 +25,10 @@ class Backtest:
         
     def get_action(self, prediction):
         """Get action based on the prediction."""
-        state = self.states_map[prediction]
+        try:
+            state = self.states_map[prediction]
+        except:
+            state = prediction
         return self.holdings_map[state]
     
     def calculate_max_drawdown(self, values):

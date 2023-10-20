@@ -9,6 +9,8 @@ import os
 
 from Helpers.triple_barrier_labeling import Triple_Barrier_Labeling
 from Models.XGB_trainer import XGB_Trainer
+from Helpers.plotting_module import PlottingModule
+from Helpers.backtesting import Backtest
 
 logger = logging.getLogger(__name__)
 
@@ -44,15 +46,15 @@ class XGB_Training_Dash():
 
         self.plot = plot
 
-        self._load_data()
-        self._prepare_data()
+        self.load_data()
+        self.prepare_data()
 
-    def _load_data(self) -> None:
+    def load_data(self) -> None:
 
         """ Loads the dataset. """
 
-        logger.info("Loading data from Data/training_prediction_data.csv")
-        self.df_ = pd.read_csv("Data/training_prediction_data.csv")
+        logger.info("Loading data from Data/HMM_data.csv")
+        self.df_ = pd.read_csv("Data/HMM_data.csv")
         self.df = Triple_Barrier_Labeling(self.df_, 'Combined Prices').label_data()
 
     def save_model(
@@ -72,7 +74,7 @@ class XGB_Training_Dash():
         with open(path, "wb") as file:
             pickle.dump(model, file)
 
-    def _prepare_data(self) -> None:
+    def prepare_data(self) -> None:
         
         """ Prepares the training and predicting datasets. """
 
@@ -102,7 +104,11 @@ class XGB_Training_Dash():
         self.dates_train              = self.features_train['Dates']
         self.target_train             = self.features_train['label']
         self.prices_train             = self.features_train['Prices_training']
-        self.features_train           = self.features_train.drop(columns=['Dates', 'label', 'Prices_training'], axis=1)
+        self.features_train           = self.features_train.drop(columns=[
+                                                                    'Dates', 
+                                                                    'label', 
+                                                                    'Prices_training'
+                                                                    ], axis=1)
         self.features_train.columns   = self.model_columns
 
         # Prepare predicting dataset
@@ -110,8 +116,54 @@ class XGB_Training_Dash():
         self.dates_predict            = self.features_predict['Dates']
         self.target_predict           = self.features_predict['label']
         self.prices_predict           = self.features_predict['Prices_prediction']
-        self.features_predict         = self.features_predict.drop(columns=['Dates', 'label', 'Prices_prediction'], axis=1)
+        self.features_predict         = self.features_predict.drop(columns=[
+                                                                    'Dates', 
+                                                                    'label', 
+                                                                    'Prices_prediction'
+                                                                    ], axis=1)
         self.features_predict.columns = self.model_columns
+    
+    def save_data(
+        self,
+        dates_train: pd.Series,
+        features_train: pd.DataFrame,
+        target_train: pd.Series,
+        prices_train: pd.Series,
+        dates_predict: pd.Series,
+        features_predict: pd.DataFrame,
+        target_predict: pd.Series,
+        prices_predict: pd.Series
+        ) -> None:
+
+        """ 
+        Saves the data of the trained model so 
+        that it can be accessed in other modules
+        
+        """
+        
+        train_df = pd.DataFrame({
+            'dates': dates_train,
+            'target': target_train,
+            'prices': prices_train
+        })
+
+        predict_df = pd.DataFrame({
+            'dates': dates_predict,
+            'target': target_predict,
+            'prices': prices_predict
+        })
+
+        for x in features_train.columns:
+            train_df[f'Train_{x}'] = features_train[x]
+
+        for x in features_predict.columns:
+            predict_df[f'Predict_{x}'] = features_predict[x]
+
+        train_df.set_index('dates', inplace=True)
+        predict_df.set_index('dates', inplace=True)
+        final_df = pd.concat([train_df, predict_df])
+
+        final_df.to_csv('Data/XGB_data.csv', index=False)
 
     def train_model(self) -> None:
         
@@ -120,11 +172,16 @@ class XGB_Training_Dash():
         logger.info("Training the XGB model.")
         self.xgb_model = XGB_Trainer(self.features_train, self.target_train)
         self.model     = self.xgb_model.train_model()
-        self.xgb_model.plot_trained_model()
+        #self.xgb_model.plot_trained_model()
 
         if self.plot:
             self.xgb_model.plot_trained_model()
         
+        self.save_data(self.dates_train   , self.features_train  ,
+                       self.target_train  , self.prices_train    , 
+                       self.dates_predict , self.features_predict, 
+                       self.target_predict, self.prices_predict)
+                    
         return self.model            , self.dates_train   , self.features_train, \
                self.target_train     , self.prices_train  , self.dates_predict,  \
                self.features_predict , self.target_predict, self.prices_predict 
@@ -152,4 +209,34 @@ target_train    , prices_train  , dates_predict  , \
 features_predict, target_predict, prices_predict = xgb_trainer.train_model()
 
 xgb_trainer.save_model(model)
-predicted = xgb_trainer.predict(model, xgb_trainer.features_predict)
+predicted_trained = xgb_trainer.predict(model, features_train)
+
+minv = min(predicted_trained)
+maxv = max(predicted_trained)
+
+normalized_prediction = pd.DataFrame([(x - minv) / (maxv - minv) for x in predicted_trained])
+normalized_prediction.columns = ['Normalized Values']
+
+for index, x in normalized_prediction.iterrows():
+    if x['Normalized Values'] > 0.3:
+        normalized_prediction.at[index, 'Signals'] = 'green'
+    elif x['Normalized Values'] < -0.3:
+        normalized_prediction.at[index, 'Signals'] = 'red'
+    else:
+        normalized_prediction.at[index, 'Signals'] = 'yellow'
+
+plotter = PlottingModule(dates         = dates_train, 
+                         values_list   = [prices_train, normalized_prediction['Signals']], 
+                         labels_list   = ['SPY', 'Signals'])
+plotter.plot()
+
+bt = Backtest(dates_train, 
+              np.array(prices_train.values), 
+              normalized_prediction['Signals'], 
+              normalized_prediction['Signals']
+              )
+
+bt.run_backtest()
+bt.plot_balance()
+
+

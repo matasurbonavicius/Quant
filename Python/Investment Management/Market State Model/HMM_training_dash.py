@@ -7,6 +7,7 @@ from Data.market_data_module import MarketDataModule
 from Helpers.plotting_module import PlottingModule
 from Helpers.backtesting import Backtest
 from Models.MSCM import MSCM
+from Models.DTW_classification import classify_states
 
 
 class HMM_Training_Dash:
@@ -87,10 +88,14 @@ class HMM_Training_Dash:
             self.MSCM.perform_BIC(training_data_Z, 5, 10)
 
         if self.plotting:
-            colors, predicted_values, trained_values, states_classified = self.MSCM.train_model(training_data_Z, 
-                                                                                prediction_data_Z, 
-                                                                                prices_training)
+            predicted_values, trained_values = self.MSCM.train_model(training_data_Z, 
+                                                                    prediction_data_Z, 
+                                                                    prices_training)
             
+            classified_trained = classify_states(prices   = prices_training.flatten(), 
+                                                 states   = trained_values, 
+                                                 n_states = 6)
+            colors_predict     = [classified_trained[state] for state in predicted_values]
             
             self.MSCM.save_data(
                 prediction_data_Z, 
@@ -109,14 +114,14 @@ class HMM_Training_Dash:
                                     values_list   = values_list_efficient, 
                                     labels_list   = ['SPY', 'VIX', 'MOVE', 'EURUSD', 'HY', 
                                                      'BBB', 'AA', 'Liquidity', 'Spread', 'FEDFUNDS'], 
-                                    color_mapping = colors)
+                                    color_mapping = colors_predict)
             plotter.plot()
 
         if self.run_backtest:
             bt = Backtest(prediction_dates, 
                         np.array(self.data.loc[prediction_dates, "Close_SPY"].values), 
                         predicted_values, 
-                        states_classified
+                        classified_trained
                         )
             bt.run_backtest()
             bt.plot_balance()
@@ -129,6 +134,5 @@ class HMM_Training_Dash:
         self.perform_analysis()
 
 dash = HMM_Training_Dash(perform_bic = False)
-dash.run_backtest = False
-dash.perform_bic = False
+dash.run_backtest = True
 dash.run()

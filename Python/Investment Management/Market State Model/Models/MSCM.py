@@ -224,12 +224,7 @@ class MSCM():
         predicted_values  = HMM.predict(model_trained, prediction_data_Z)
         trained_values    = HMM.predict(model_trained, training_data_Z)
 
-        states_classified = classify_states(prices   = prices_training.flatten(), 
-                                            states   = trained_values, 
-                                            n_states = 6)
-        colors            = [states_classified[state] for state in predicted_values]
-
-        return colors, predicted_values, trained_values, states_classified
+        return predicted_values, trained_values
 
     def save_data(
         self,
@@ -290,7 +285,7 @@ class MSCM():
         df['Combined Prices'] = df[pt].combine_first(df[pp])
         # df = df.drop([pt, pp], axis=1)
 
-        df.to_csv('Data/training_prediction_data.csv', index=False)
+        df.to_csv('Data/HMM_data.csv', index=False)
 
 
 

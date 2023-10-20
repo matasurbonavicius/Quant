@@ -17,7 +17,7 @@ class MarketDataModule:
     manipulate data.
     """
 
-    def __init__(self, symbols_yfinance: List[str] = None, symbols_fred: List[str] = None) -> None:
+    def __init__(self, symbols_yfinance: List[str] = None, symbols_fred: List[str] = None, timeframe: str = 'Weekly') -> None:
         
         
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -44,15 +44,25 @@ class MarketDataModule:
             'Spread': self._compute_spread
         }
 
+        self.timeframe = timeframe
+
+        self.timeframe_map = {
+            "Daily"  : {"Yfinance": "1d" , "FRED": "D"},
+            "Weekly" : {"Yfinance": "1wk", "FRED": "W"},
+            "Monthly": {"Yfinance": "1m" , "FRED": "M"}
+        }
+
     def fetch_data_yfinance(self, start_date: str, end_date: str = None) -> None:
-        
-        self._logger.info(
-            f"Fetching data from {start_date} to {end_date} for symbols: {self.symbols_yfinance}"
-            )
-        
+
         """
         Fetch data for the given symbols.
         """
+        
+        tf = self.timeframe_map[self.timeframe]['Yfinance']
+
+        self._logger.info(
+            f"Fetching {tf} data from {start_date} to {end_date} for symbols: {self.symbols_yfinance}"
+            )
 
         if end_date is None:
             end_date = datetime.now().strftime('%Y-%m-%d')
@@ -62,7 +72,7 @@ class MarketDataModule:
                 symbol, 
                 start=start_date, 
                 end=end_date, 
-                interval='1d', 
+                interval=tf, 
                 progress=False
             )
 
@@ -80,13 +90,21 @@ class MarketDataModule:
     
     def fetch_data_fred(self, api_key: str, start_date: str, end_date: str = None) -> None:
         
-        self._logger.info(
-            f"Fetching data from {start_date} to {end_date} for symbols: {self.symbols_fred}"
-            )
+        """
+        Fetch data from FRED.
+
+        Parameters:
+        - api_key: Your FRED API key
+        - start_date: Start date for the data
+        - end_date: End date for the data (defaults to today)
+        - frequency: Data frequency ("D" for daily, "W" for weekly, "M" for monthly)
+        """
+
+        tf = self.timeframe_map[self.timeframe]['FRED']
         
-        """
-        Fetch data for the given symbols.
-        """
+        self._logger.info(
+            f"Fetching {tf} data from {start_date} to {end_date} for symbols: {self.symbols_fred}"
+        )
 
         if end_date is None:
             end_date = datetime.now().strftime('%Y-%m-%d')
@@ -95,7 +113,16 @@ class MarketDataModule:
             fed = Fred(api_key)
             data = fed.get_series(symbol, start=start_date, end=end_date)
 
+            if tf == "W":
+                # Weekly data resampled to end on Saturdays
+                data = data.resample('W-SAT').last()
+            elif tf == "M":
+                # Monthly data with end of period aggregation
+                data = data.resample('M').last()
+
             data.name = f"{symbol}"
+
+            data = data[start_date:]
 
             if self.dataframes is None:
                 self.dataframes = data
@@ -369,19 +396,20 @@ class MarketDataModule:
 
 
 
-# # Usage Example:
+# Usage Example:
 # symbols = ["BAMLC0A4CBBB"]
 # api_key = "b48eef00ef6d0de74f782e6165ac7454"
 # symbols_fred = ["BAMLH0A0HYM2", "BAMLC0A4CBBB", "BAMLC0A2CAA", "T10Y2Y", "AMERIBOR", "DTB3"]
-# symbols_yfinance=["^VIX", "^MOVE", "EURUSD=X", "SPY"]
+# #symbols_yfinance=["^VIX", "^MOVE", "EURUSD=X", "SPY"]
+# symbols_yfinance = ["^VIX"]
 # analyzer = MarketDataModule(symbols_fred=symbols_fred, symbols_yfinance=symbols_yfinance)
 # analyzer.fetch_data_fred(api_key, "2000-01-01")
 # analyzer.fetch_data_yfinance("2000-01-01")
-# analyzer.calculate_indicators(['ATR'], "Close_EURUSD=X")
-# analyzer.calculate_indicators(['Liquidity'], "Close_SPY")
-# analyzer.calculate_indicators(['Spread'], symbol1="AMERIBOR", symbol2="DTB3")
+# # analyzer.calculate_indicators(['ATR'], "Close_EURUSD=X")
+# # analyzer.calculate_indicators(['Liquidity'], "Close_SPY")
+# # analyzer.calculate_indicators(['Spread'], symbol1="AMERIBOR", symbol2="DTB3")
 # data = analyzer.get_data()
 # print(analyzer.get_indicators())
 
 # data = data.ffill()
-# print(data)
+# print(data.tail(20))
