@@ -1,5 +1,0 @@
-<<<<<<< HEAD
-C:\Users\Admin\Desktop\Options\x64\Debug\Options.exe
-=======
-C:\Users\Admin\Desktop\Options\x64\Debug\Options.exe
->>>>>>> fd281c392555bc22addd8a53fa7a822316651ff9
