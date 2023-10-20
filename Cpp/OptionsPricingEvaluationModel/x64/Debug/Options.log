@@ -1,0 +1,10 @@
+<<<<<<< HEAD
+﻿  BlackScholes.cpp
+C:\Users\Admin\Desktop\Options\BlackScholes.cpp(538,25): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Admin\Desktop\Options\BlackScholes.cpp(538,25): warning C4056: overflow in floating-point constant arithmetic
+C:\Users\Admin\Desktop\Options\BlackScholes.cpp(541,40): warning C4244: '=': conversion from 'const double' to 'int', possible loss of data
+  Options.vcxproj -> C:\Users\Admin\Desktop\Options\x64\Debug\Options.exe
+=======
+﻿  BlackScholes.cpp
+  Options.vcxproj -> C:\Users\Admin\Desktop\Options\x64\Debug\Options.exe
+>>>>>>> fd281c392555bc22addd8a53fa7a822316651ff9
