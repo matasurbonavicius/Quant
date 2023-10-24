@@ -2,12 +2,12 @@
 
 This is a public repository managed by Matas Urbonavicius
 
-I upload my research and code in this repository.
+I upload my research and code here.
 
 Navigation:
 
 - Cpp
-  * Options scripts
+  * Options
 - Python
   * Quant Research
      + Jupyter Notebook Scripts
