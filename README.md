@@ -14,6 +14,7 @@ Navigation:
      + Python code
   * Quant Trading
      + Quant Connect Platform Code
+  * Investment Management
 
 Description:
 - https://www.MercatusCapitis.com
