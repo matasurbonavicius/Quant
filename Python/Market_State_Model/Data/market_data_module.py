@@ -146,6 +146,17 @@ class MarketDataModule:
         """
 
         return self.dataframes
+
+    def save_data(self, dataframe = None, path="market_data_module_saved.csv") -> None:
+
+        """
+        Saves the dataframe in the current folder
+        """
+    
+        if not dataframe:
+            self.dataframes.to_csv(path)
+        else:
+            self.dataframe.to_csv(path)
     
     def get_indicators(self) -> List[str]:
         self._logger.info(f"[get_indicators] Indicators: {list(self.current_indicators_names)}")
@@ -559,6 +570,7 @@ class MarketDataModule:
 # # analyzer.calculate_indicators(['Spread'], symbol1="AMERIBOR", symbol2="DTB3")
 # data = analyzer.get_data()
 # print(analyzer.get_indicators())
+# analyzer.save_data()
 
 # data = data.ffill()
 # print(data.tail(20))
