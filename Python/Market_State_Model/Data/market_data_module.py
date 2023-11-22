@@ -57,7 +57,7 @@ class MarketDataModule:
             "Monthly": {"Yfinance": "1m" , "FRED": "M"}
         }
 
-    def fetch_data_yfinance(self, start_date: str, end_date: str = None) -> None:
+    def fetch_data_yfinance(self, start_date: str, end_date: str = None, only_close = False) -> None:
 
         """
         Fetch data for the given symbols.
@@ -81,7 +81,11 @@ class MarketDataModule:
                 progress=False
             )
 
-            data.rename(columns=lambda x: f"{x}_{symbol}", inplace=True)
+            if only_close:
+                data = data['Close']
+                data.name = f"{data.name}_{symbol}"
+            else:
+                data.rename(columns=lambda x: f"{x}_{symbol}", inplace=True)
 
             if self.dataframes is None:
                 self.dataframes = data
